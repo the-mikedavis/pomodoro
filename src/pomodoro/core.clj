@@ -12,10 +12,18 @@
     [org.httpkit.client :as http]))
 
 
+(def slack-api-base-url "https://slack.com/api")
+
+(defn- call-slack-web-api
+  "Call any method from the slack API"
+  ([method-name]
+   (call-slack-web-api method-name {}))
+  ([method-name params]
+   (let [method-url-base (str slack-api-base-url "/" method-name)]
+     @(http/post method-url-base {:query-params params}))))
+
 (def api-token-filename "api-token.txt")
 (def ^:dynamic *api-token* nil)
-
-;(defn get-lunch-channel-id [] (:id (state/name->channel lunch-channel-name)))
 
 (defn get-user-dm-id
   "get the direct message channel id for this user.
@@ -89,7 +97,7 @@
                             :unrecognized)))
 
 (def responses
-  {:start "Focus for 26 minutes."
+  {:start "Focus for 25 minutes."
    :end "I've ended your timer."
    :unrecognized "I didn't catch that"})
 
@@ -99,8 +107,9 @@
   (let [cmd (:command-type command)
         reply (cmd responses)]
     (when (= cmd :start)
-      (future (Thread/sleep 10000)
-              (tx/say-message channel-id "Your timer has ended")))
+      (future (Thread/sleep 60000)
+              (tx/say-message channel-id "Your timer has ended"))
+      (println (call-slack-web-api "dnd.setSnooze" {:token *api-token* :num_minutes 2})))
     reply))
 
 (defn handle-message
@@ -115,23 +124,6 @@
     (catch Exception ex
       (printex (str "Exception trying to handle slack message\n" (str msg) ".") ex)
       (try (tx/say-message channel-id "@!#?@!")))))
-
-(comment
-  (defn handle-message
-    "translates a slack message into a command, handles that command, and communicates the reply"
-    [{channel-id :channel, text :text, :as msg}]
-    (try
-      (when-let [cmd-text (command/message->command-text channel-id text)]
-        (let [raw-cmd (command/command-text->command cmd-text)
-              cmd (contextualize-command raw-cmd msg cmd-text)
-              replies (handle-command cmd)]
-          (doseq [reply replies]
-            (distribute-message reply))))
-      (catch Exception ex
-        (printex (str "Exception trying to handle slack message\n" (str msg) ".") ex)
-        (try (talk/say-message channel-id "@!#?@!")))))
-)
-
 
 (defn dispatch-handle-slack-event [event] ((juxt :type :subtype) event))
 
