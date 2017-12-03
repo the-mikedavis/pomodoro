@@ -70,6 +70,12 @@
   ;(println cmd)
   cmd)
 
+; to be used later with a more clever solution to getting the proper keyword
+(def command-finding-functions
+  {:start #(and (re-find #"zen" %) (re-find #"start" %))
+   :end #(and (re-find #"zen" %) (re-find #"end" %))
+   :unrecognized #(and %)})
+
 (defn parse-command
   "Set the command type based on the input text"
   [input]
@@ -78,16 +84,24 @@
                                     (re-find #"end" input))
                               (if (re-find #"start" input)
                                 :start
-                                :end))
+                                :end)
+                              :unrecognized)
                             :unrecognized)))
+
+(def responses
+  {:start "Focus for 26 minutes."
+   :end "I've ended your timer."
+   :unrecognized "I didn't catch that"})
 
 (defn formulate-response
   "Give a string response to a command map and start async functions"
-  [command]
-  (case (:command-type command)
-    :start "Focus for 25 minutes."
-    :end "I've ended your timer."
-    :unrecognized "I didn't catch that."))
+  [command channel-id]
+  (let [cmd (:command-type command)
+        reply (cmd responses)]
+    (when (= cmd :start)
+      (future (Thread/sleep 10000)
+              (tx/say-message channel-id "Your timer has ended")))
+    reply))
 
 (defn handle-message
   "translates a slack message into a command, handles that command, and communicates the reply"
@@ -96,7 +110,7 @@
     (when-let [cmd-text (message->command-text channel-id text)]
       (let [raw-cmd (parse-command cmd-text); {:command-type :unrecognized}
             cmd (contextualize-command raw-cmd msg cmd-text)
-            reply (formulate-response cmd)]
+            reply (formulate-response cmd channel-id)]
         (tx/say-message channel-id reply)))
     (catch Exception ex
       (printex (str "Exception trying to handle slack message\n" (str msg) ".") ex)
