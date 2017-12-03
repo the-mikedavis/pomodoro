@@ -125,13 +125,20 @@
       (do (when (= cmd :start)
             (alter-var-root (var *timer*)
                             (fn [f]
+                              ; cancel the current timer if there is one
                               (when (not (nil? f)) (future-cancel f))
+                              ; set up the new timer
                               (future (Thread/sleep 10000)
                                       (tx/say-message
                                         channel-id
-                                        "Your timer has ended")))))
+                                        "Your timer has ended. Nice focus!")))))
           ;(println (call-slack-web-api "dnd.setSnooze" {:token *api-token* :num_minutes 2})))
           ; endSnooze would be for the end event
+          (when (= cmd :end)
+            (alter-var-root (var *timer*)
+                            (fn [f]
+                              (when (not (nil? f)) (future-cancel f))
+                              nil)))
           reply)
       (if (= cmd :status)
         (investigate-dnd user)))))
