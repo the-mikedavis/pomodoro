@@ -80,8 +80,9 @@
 
 ; to be used later with a more clever solution to getting the proper keyword
 (def command-finding-functions
-  {:start #(and (re-find #"zen" %) (re-find #"start" %))
-   :end #(and (re-find #"zen" %) (re-find #"end" %))
+  {:start #(re-find #"start" %)
+   :end #(re-find #"end" %)
+   :status #(re-find #"status" %)
    :unrecognized #(and %)})
 
 (defn parse-command
