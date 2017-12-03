@@ -17,7 +17,7 @@ As of yet, this is not a Slack App, so installing it is tricky.
     - SSH: `git clone git@github.com:the-mikedavis/pomodoro.git`
     - HTTP: `git clone https://github.com/the-mikedavis/pomodoro.git`
 3. Create the api-token
-    - Go [here](https://get.slack.help/hc/en-us/articles/215770388-Create-and-regenerate-API-tokens) and read up on adding an api-token for a bot
+    - Go [here](https://api.slack.com/custom-integrations/bot-users) and read up on adding an api-token for a bot
     - Paste the api-token as the only text in a file called `api-token.txt` in this directory.
 4. Execute: `lein run` in this directory.
 
