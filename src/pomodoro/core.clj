@@ -87,17 +87,11 @@
 (defn parse-command
   "Set the command type based on the input text"
   [input]
-  (hash-map :command-type (if (re-find #"zen" input)
-                            (if (or (re-find #"start" input)
-                                    (re-find #"end" input))
-                              (if (re-find #"start" input)
-                                :start
-                                :end)
-                              :unrecognized)
-                            :unrecognized)))
+  (hash-map :command-type
+            (first (first (filter (fn [[k v]] (v input)) command-finding-functions)))))
 
 (def responses
-  {:start "Focus for 25 minutes."
+  {:start "Focus for 20 minutes and turn on Do Not Disturb."
    :end "I've ended your timer."
    :unrecognized "I didn't catch that"})
 
@@ -107,9 +101,10 @@
   (let [cmd (:command-type command)
         reply (cmd responses)]
     (when (= cmd :start)
-      (future (Thread/sleep 60000)
-              (tx/say-message channel-id "Your timer has ended"))
-      (println (call-slack-web-api "dnd.setSnooze" {:token *api-token* :num_minutes 2})))
+      (future (Thread/sleep 10000)
+              (tx/say-message channel-id "Your timer has ended")))
+      ;(println (call-slack-web-api "dnd.setSnooze" {:token *api-token* :num_minutes 2})))
+      ; endSnooze would be for the end event
     reply))
 
 (defn handle-message
