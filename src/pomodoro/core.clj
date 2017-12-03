@@ -9,6 +9,7 @@
     [pomodoro.file-ops :as store]
     [clj-time.core :as time]
     [clojure.string :as string]
+    [cheshire.core :as json]
     [org.httpkit.client :as http]))
 
 
@@ -83,6 +84,7 @@
   {:start #(re-find #"start" %)
    :end #(re-find #"end" %)
    :status #(re-find #"status" %)
+   :team-status #(re-find #"team" %)
    :unrecognized #(and %)})
 
 (defn parse-command
@@ -99,14 +101,16 @@
 (defn formulate-response
   "Give a string response to a command map and start async functions"
   [command channel-id]
-  (let [cmd (:command-type command)
-        reply (cmd responses)]
-    (when (= cmd :start)
-      (future (Thread/sleep 10000)
-              (tx/say-message channel-id "Your timer has ended")))
-      ;(println (call-slack-web-api "dnd.setSnooze" {:token *api-token* :num_minutes 2})))
-      ; endSnooze would be for the end event
-    reply))
+  (let [cmd (:command-type command)]
+    (if-let [reply (cmd responses)]
+      (do (when (= cmd :start)
+            (future (Thread/sleep 10000)
+                    (tx/say-message channel-id "Your timer has ended")))
+          ;(println (call-slack-web-api "dnd.setSnooze" {:token *api-token* :num_minutes 2})))
+          ; endSnooze would be for the end event
+          reply)
+      (if (= cmd :status)
+        (string/join "\n" '())))))
 
 (defn handle-message
   "translates a slack message into a command, handles that command, and communicates the reply"

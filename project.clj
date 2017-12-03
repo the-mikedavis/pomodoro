@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [clj-slack-client "0.1.6-SNAPSHOT"]
                  [clj-time "0.9.0"]
+                 [cheshire "5.4.0"]
                  [http-kit "2.2.0"]]
   :main ^:skip-aot pomodoro.core
   :target-path "target/%s"
