@@ -15,6 +15,14 @@
 
 (def slack-api-base-url "https://slack.com/api")
 
+(defn- get-api-response
+  "Takes a full http response map and returns the api response as a map."
+  [http-response]
+  (let [response-body-bytes (:body http-response)
+        response-body-json (byte-streams/to-string response-body-bytes)
+        api-response (json/parse-string response-body-json true)]
+    api-response))
+
 (defn- call-slack-web-api
   "Call any method from the slack API"
   ([method-name]
@@ -25,6 +33,7 @@
 
 (def api-token-filename "api-token.txt")
 (def ^:dynamic *api-token* nil)
+(def ^:dynamic *timer* nil)
 
 (defn get-user-dm-id
   "get the direct message channel id for this user.
@@ -98,19 +107,34 @@
    :end "I've ended your timer."
    :unrecognized "I didn't catch that"})
 
+(defn investigate-dnd
+  "Extract the time remaining from a json response."
+  [user]
+  (let [response (->> {:token *api-token* :user user}
+      (call-slack-web-api "dnd.info")
+      (get-api-response))]
+    (if (get response :dnd_enabled)
+      "The timer is running."
+      "The timer isn't running.")))
+
 (defn formulate-response
   "Give a string response to a command map and start async functions"
-  [command channel-id]
+  [command channel-id user]
   (let [cmd (:command-type command)]
     (if-let [reply (cmd responses)]
       (do (when (= cmd :start)
-            (future (Thread/sleep 10000)
-                    (tx/say-message channel-id "Your timer has ended")))
+            (alter-var-root (var *timer*)
+                            (fn [f]
+                              (when (not (nil? f)) (future-cancel f))
+                              (future (Thread/sleep 10000)
+                                      (tx/say-message
+                                        channel-id
+                                        "Your timer has ended")))))
           ;(println (call-slack-web-api "dnd.setSnooze" {:token *api-token* :num_minutes 2})))
           ; endSnooze would be for the end event
           reply)
       (if (= cmd :status)
-        (string/join "\n" '())))))
+        (investigate-dnd user)))))
 
 (defn handle-message
   "translates a slack message into a command, handles that command, and communicates the reply"
@@ -119,7 +143,7 @@
     (when-let [cmd-text (message->command-text channel-id text)]
       (let [raw-cmd (parse-command cmd-text); {:command-type :unrecognized}
             cmd (contextualize-command raw-cmd msg cmd-text)
-            reply (formulate-response cmd channel-id)]
+            reply (formulate-response cmd channel-id (:user msg))]
         (tx/say-message channel-id reply)))
     (catch Exception ex
       (printex (str "Exception trying to handle slack message\n" (str msg) ".") ex)
