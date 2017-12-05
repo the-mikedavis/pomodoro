@@ -136,11 +136,10 @@
 (defn get-name
   "Get the name of a person from their id"
   [id]
-  (println (str "ID: " id))
   (let [response (->> {:token *api-token* :user (name id)}
                          (call-slack-web-api "users.info")
                          (get-api-response))]
-    ((comp :real_name :user) response)))
+    ((comp :display_name :user) response)))
 
 (defn investigate-team
   "Extract the dnd times for the team."
@@ -167,8 +166,6 @@
                                       (tx/say-message
                                         channel-id
                                         "Your timer has ended. Nice focus!")))))
-          ;(println (call-slack-web-api "dnd.setSnooze" {:token *api-token* :num_minutes 2})))
-          ; endSnooze would be for the end event
           (when (= cmd :end)
             (alter-var-root (var *timer*)
                             (fn [f]

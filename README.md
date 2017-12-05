@@ -52,6 +52,7 @@ Capitalizing any of the letters of the keywords makes them unrecognizable. Regex
 - [ ] get real Slack App status
 - [ ] become a Slack developer
 - [ ] get bots access to Do Not Disturb controls
+    - the api can be called with `(call-slack-web-api "dnd.setSnooze" {:token *api-token* :num_minutes 2})`
 
 ## License
 
