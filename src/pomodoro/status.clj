@@ -2,7 +2,7 @@
 (ns pomodoro.status
   (:require [pomodoro
              [interact :as interact]
-             [core :as core]]
+             [mutables :as mutes]]
             [clojure.string :as string]))
 
 (defn parse-int [s]
@@ -34,19 +34,21 @@
 
 (defn get-dnd-info
   "Get the time left on Do Not Disturb for the user in the message"
-  [msg]
-  (->> {:token core/*api-token* :user (:user msg)}
-       (interact/call-slack-web-api "dnd.info")
-       (interact/get-api-response)))
+  ([msg user] ; single person
+   (->> {:token mutes/*api-token* :user user}
+        (interact/call-slack-web-api "dnd.info")
+        (interact/get-api-response)))
+  ([msg]      ; the team
+   (->> {:token mutes/*api-token*}
+        (interact/call-slack-web-api "dnd.teamInfo")
+        (interact/get-api-response))))
 
 (defn get-user-dnd-status
   "Get the reply string of the time left on Do Not Disturb for the
   user in the message. The second arity is for if you already have
   the json response"
-  ([msg]
-   (tell-dnd-time msg (get-dnd-info msg)))
-  ([msg response]
-   (tell-dnd-time msg response)))
+  [msg]
+   (tell-dnd-time msg (get-dnd-info msg (:user msg))))
 
 
 (defn get-team-dnd-status
@@ -57,5 +59,5 @@
          (map (fn [[k v]] ; k is a user ID, v is the response about them
                 (str (interact/get-name k)
                      ": "
-                     (get-user-dnd-status msg v))))
+                     (tell-dnd-time msg v))))
          (string/join "\n"))))

@@ -1,5 +1,6 @@
 (ns pomodoro.interact
-  (:require [pomodoro.core :as core]
+  (:require [pomodoro
+             [mutables :as mutes]]
             [clj-slack-client
              [rtm-transmit :as tx]
              [web :as web]
@@ -33,7 +34,7 @@
   [user-id]
   (if-let [dm-id (state/user-id->dm-id user-id)]
     dm-id
-    (web/im-open core/*api-token* user-id)))
+    (web/im-open mutes/*api-token* user-id)))
 
 (defn printex
   "Print an exception to CLI with stacktrace"
@@ -74,11 +75,10 @@
 (defn get-name
   "Get the name of a person from their id"
   [id]
-  (println (str "ID: " id))
-  (let [response (->> {:token core/*api-token* :user (name id)}
+  (let [response (->> {:token mutes/*api-token* :user (name id)}
                          (call-slack-web-api "users.info")
                          (get-api-response))]
-    ((comp :display_name :user) response)))
+    ((comp :real_name :user) response)))
 
 (defn get-bot-self-id-regex []
   "Creates a regex to match the bot's ID"

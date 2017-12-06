@@ -1,7 +1,7 @@
 (ns pomodoro.reply
   (:require [pomodoro
-             [core :as core]
              [interact :as interact]
+             [mutables :as mutes]
              [status :as status]]))
 
 (defn cancel
@@ -20,12 +20,12 @@
 (defmethod respond :start
   [command msg]
   (alter-var-root 
-    (var core/*timer*)
+    (var mutes/*timer*)
     (fn [fut]
       (cancel fut)
       (future (Thread/sleep 10000)
               (interact/say
-                (:channel-id command)
+                (:channel msg)
                 "Your pomodoro has ended. Nice focus!"))))
   "Your pomodoro has started. Please turn on Do Not Disturb.")
 
@@ -33,7 +33,7 @@
 (defmethod respond :end
   [command msg]
   (alter-var-root
-    (var core/*timer*)
+    (var mutes/*timer*)
     cancel)
   "Pomodoro cancelled.")
 
@@ -43,7 +43,7 @@
   (status/get-user-dnd-status msg))
 
 ; get the status of the team
-(defmethod respond :team
+(defmethod respond :team-status
   [command msg]
   (status/get-team-dnd-status msg))
 
@@ -85,13 +85,13 @@
   sends a reply"
   [{channel-id :channel, text :text, :as msg}]
   (try
-    (when-let [command-text (interact/message->command-text text)]
+    (when-let [command-text (interact/message->command-text
+                              channel-id text)]
       (let [raw-command (parse-command command-text)
             command (contextualize-command raw-command msg command-text)
-            reply (respond command channel-id msg)]
+            reply (respond command msg)]
         (interact/say channel-id reply)))
-       (catch Exception ex
-         (interact/printex (str "Exception trying to handle slack message\n"
-                       (str msg) ".")
-                  ex)
-         (try (interact/say "@!#?@!")))))
+    (catch Exception ex
+      (interact/printex (str "Exception trying to handle slack message\n"
+                             (str msg) ".") ex)
+      (try (interact/say channel-id "@!#?@!")))))
