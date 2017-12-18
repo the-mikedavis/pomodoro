@@ -13,7 +13,6 @@
      [interact :as interact]]
     [clj-time.core :as time]
     [clojure.string :as string]
-    [cheshire.core :as json]
     [org.httpkit.client :as http]))
 
 (def api-token-filename "api-token.txt")
