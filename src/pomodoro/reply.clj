@@ -16,24 +16,29 @@
   (fn [command msg]
     (:command-type command)))
 
+(defn create-timer
+  "Create a future which will serve a message after a given time."
+  [t channel message]
+  (future (Thread/sleep t)
+          (interact/say channel message)))
+
 ; start the pomodoro
 (defmethod respond :start
   [command msg]
-  (alter-var-root 
-    (var mutes/*timer*)
+  (swap!
+    mutes/timer
     (fn [fut]
       (cancel fut)
-      (future (Thread/sleep 10000)
-              (interact/say
-                (:channel msg)
-                "Your pomodoro has ended. Nice focus!"))))
+      (create-timer 10000
+                    (:channel msg)
+                    "Your pomodoro has ended. Nice focus!")))
   "Your pomodoro has started. Please turn on Do Not Disturb.")
 
 ; end the pomodoro
 (defmethod respond :end
   [command msg]
-  (alter-var-root
-    (var mutes/*timer*)
+  (swap!
+    mutes/timer
     cancel)
   "Pomodoro cancelled.")
 
