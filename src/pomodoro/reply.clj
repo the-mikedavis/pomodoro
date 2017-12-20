@@ -7,7 +7,7 @@
 (defn cancel
   "Cancel a future if it's not nil"
   [fut]
-  (when (not (nil? fut)) (future-cancel fut))
+  (when (future? fut) (future-cancel fut))
   nil)
 
 ; handle a command. The return must be a string which will be said
@@ -37,10 +37,12 @@
 ; end the pomodoro
 (defmethod respond :end
   [command msg]
-  (swap!
-    mutes/timer
-    cancel)
-  "Pomodoro cancelled.")
+  (if (not (future? @mutes/timer))
+    "The timer isn't on."
+    (do (swap!
+          mutes/timer
+          cancel)
+        "Pomodoro cancelled.")))
 
 ; get the asker's status
 (defmethod respond :status
@@ -57,8 +59,6 @@
   [command msg]
   "Sorry, I didn't understand that")
 
-
-; #"(?i)a" is ignore case
 (def command-finding-functions
   {:start #(re-find #"(?i)start" %)
    :end #(re-find #"(?i)end" %)
