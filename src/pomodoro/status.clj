@@ -1,4 +1,4 @@
-; get the status of pomodoro timers
+; get the status of Do Not Disturb
 (ns pomodoro.status
   (:require [pomodoro
              [interact :as interact]
@@ -9,30 +9,30 @@
   "Convert a string to integer"
   (Integer. (re-find #"\d+" s)))
 
-(defn get-time
+(defn time-difference
   "Gets the time in minutes between two time stamps. Assumes that start
   is a string and end is an integer."
   [end start]
   (quot (- end (parse-int start)) 60))
 
-(defn get-dnd-time
+(defn get-remaining-time
   "Return the number of minutes left on a Do Not Disturb. Compares the
   time stamps of the message recieved and the response of the
   dnd.info call"
   [msg response]
-  (get-time (:next_dnd_end_ts response)
+  (time-difference (:next_dnd_end_ts response)
             (:ts msg)))
 
-(defn tell-dnd-time
+(defn tell-remaining-time
   "Generate a string with the time remaining on a Do Not Disturb"
   [msg response]
   (if (:dnd_enabled response)
     (str "The pomodoro is running. It has "
-         (get-dnd-time msg response)
+         (get-remaining-time msg response)
          " minutes remaining.")
     "No pomodoro is running."))
 
-(defn get-dnd-info
+(defn get-dnd-response
   "Get the time left on Do Not Disturb for the user in the message"
   ([msg user] ; single person
    (->> {:token mutes/*api-token* :user user}
@@ -48,16 +48,16 @@
   user in the message. The second arity is for if you already have
   the json response"
   [msg]
-   (tell-dnd-time msg (get-dnd-info msg (:user msg))))
+   (tell-remaining-time msg (get-dnd-response msg (:user msg))))
 
 
 (defn get-team-dnd-status
   "Gets the reply string for the whole team's dnd status."
   [msg]
-  (let [resp (get-dnd-info msg)]
+  (let [resp (get-dnd-response msg)]
     (->> (:users resp)
-         (map (fn [[k v]] ; k is a user ID, v is the response about them
-                (str (interact/get-name k)
+         (map (fn [[user-id api-response]]
+                (str (interact/get-name user-id)
                      ": "
-                     (tell-dnd-time msg v))))
+                     (tell-remaining-time msg api-response))))
          (string/join "\n"))))

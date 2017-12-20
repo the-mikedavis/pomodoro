@@ -5,7 +5,7 @@
              [status :as status]]))
 
 (defn cancel
-  "Cancel a future if it's not nil"
+  "Cancel a future if it is a future."
   [fut]
   (when (future? fut) (future-cancel fut))
   nil)
@@ -29,8 +29,7 @@
     mutes/timer
     (fn [fut]
       (cancel fut)
-      (create-timer 10000
-                    (:channel msg)
+      (create-timer 10000 (:channel msg)
                     "Your pomodoro has ended. Nice focus!")))
   "Your pomodoro has started. Please turn on Do Not Disturb.")
 
@@ -39,9 +38,7 @@
   [command msg]
   (if (not (future? @mutes/timer))
     "The timer isn't on."
-    (do (swap!
-          mutes/timer
-          cancel)
+    (do (swap! mutes/timer cancel)
         "Pomodoro cancelled.")))
 
 ; get the asker's status
@@ -71,13 +68,14 @@
   [input]
   (hash-map
     :command-type
-    ((comp first first) (filter (fn [[k v]] (v input))
-                                command-finding-functions))))
+    ((comp first first)
+     (filter (fn [[k v]] (v input))
+             command-finding-functions))))
 
 (defn contextualize-command
-  "Give the slack message context to a raw command"
-  [cmd {requestor :user, text :text, ts :ts, channel-id :channel-id, :as msg}
-   command-text]
+  "Give the slack message context to a command"
+  [cmd {requestor :user, text :text, ts :ts,
+        channel-id :channel-id, :as msg} command-text]
   (-> cmd
       (assoc :requestor requestor)
       (assoc :text text)
