@@ -75,10 +75,10 @@
 (defn get-name
   "Get the name of a person from their id"
   [id]
-  (let [response (->> {:token mutes/*api-token* :user (name id)}
-                         (call-slack-web-api "users.info")
-                         (get-api-response))]
-    ((comp :real_name :user) response)))
+  ((comp :real_name :user)
+   (web/call-and-get-response 
+     "users.info"
+     {:token mutes/*api-token* :user (name id)})))
 
 (defn get-bot-self-id-regex []
   "Creates a regex to match the bot's ID"
