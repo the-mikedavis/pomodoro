@@ -52,7 +52,7 @@
   [command msg]
   (status/get-team-dnd-status msg))
 
-; default an "unrecognized" commands
+; default and "unrecognized" commands
 (defmethod respond :default
   [command msg]
   "Sorry, I didn't understand that")
@@ -60,11 +60,11 @@
 
 ; #"(?i)a" is ignore case
 (def command-finding-functions
-  {:start #(re-find #"start" %)
-   :end #(re-find #"end" %)
-   :status #(re-find #"status" %)
-   :team-status #(re-find #"team" %)
-   :unrecognized #(and %)})
+  {:start #(re-find #"(?i)start" %)
+   :end #(re-find #"(?i)end" %)
+   :status #(re-find #"(?i)status" %)
+   :team-status #(re-find #"(?i)team" %)
+   :unrecognized #(and %)}) ; returns true always
 
 (defn parse-command
   "Extract the command keyword from the raw message text"
