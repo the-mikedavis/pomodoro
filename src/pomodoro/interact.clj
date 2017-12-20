@@ -9,6 +9,17 @@
             [cheshire.core :as json]
             [clojure.string :as string]))
 
+(defn call-and-get-response
+  "My wrapper for the clj-slack-client method. Inserts the api-token."
+  ([method-name]
+   (web/call-and-get-response
+     method-name
+     {:token mutes/*api-token*}))
+  ([method-name params]
+   (web/call-and-get-response
+     method-name
+     (assoc params :token mutes/*api-token*))))
+
 ; these methods written by Tony van Riet
 (def slack-api-base-url "https://slack.com/api")
 
