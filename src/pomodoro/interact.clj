@@ -23,22 +23,6 @@
 ; these methods written by Tony van Riet
 (def slack-api-base-url "https://slack.com/api")
 
-(defn get-api-response
-  "Takes a full http response map and returns the api response as a map."
-  [http-response]
-  (let [response-body-bytes (:body http-response)
-        response-body-json (byte-streams/to-string response-body-bytes)
-        api-response (json/parse-string response-body-json true)]
-    api-response))
-
-(defn call-slack-web-api
-  "Call any method from the slack API"
-  ([method-name]
-   (call-slack-web-api method-name {}))
-  ([method-name params]
-   (let [method-url-base (str slack-api-base-url "/" method-name)]
-     @(http/post method-url-base {:query-params params}))))
-
 (defn get-user-dm-id
   "get the direct message channel id for this user.
   open the dm channel if it hasn't been opened yet."
