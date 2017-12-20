@@ -1,8 +1,6 @@
 ; get the status of Do Not Disturb
 (ns pomodoro.status
-  (:require [pomodoro
-             [interact :as interact]
-             [mutables :as mutes]]
+  (:require [pomodoro.interact :as interact]
             [clojure.string :as string]))
 
 (defn parse-int [s]
@@ -35,13 +33,10 @@
 (defn get-dnd-response
   "Get the time left on Do Not Disturb for the user in the message"
   ([msg user] ; single person
-   (->> {:token mutes/*api-token* :user user}
-        (interact/call-slack-web-api "dnd.info")
-        (interact/get-api-response)))
+   (interact/call-and-get-response "dnd.info"
+                                   {:user user}))
   ([msg]      ; the team
-   (->> {:token mutes/*api-token*}
-        (interact/call-slack-web-api "dnd.teamInfo")
-        (interact/get-api-response))))
+   (interact/call-and-get-response "dnd.teamInfo")))
 
 (defn get-user-dnd-status
   "Get the reply string of the time left on Do Not Disturb for the
