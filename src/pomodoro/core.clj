@@ -4,18 +4,15 @@
     [clj-slack-client
      [core :as slack]
      [rtm-transmit :as tx]
-     [team-state :as state]
+     [team-state :as team]
      [web :as web]]
     [pomodoro
-     [file-ops :as store]
      [reply :as reply]
-     [mutables :as mutes]
+     [state :as state]
      [interact :as interact]]
     [clj-time.core :as time]
     [clojure.string :as string]
     [org.httpkit.client :as http]))
-
-(def api-token-filename "api-token.txt")
 
 (defn dispatch-handle-slack-event [event] ((juxt :type :subtype) event))
 
@@ -24,7 +21,7 @@
 ; all reply work gets done here
 (defmethod handle-slack-event ["message" nil]
   [{user-id :user, :as msg}]
-  (when (not (state/bot? user-id))
+  (when (not (team/bot? user-id))
     (reply/handle-message msg)))
 
 (defmethod handle-slack-event ["channel_joined" nil]
@@ -91,11 +88,10 @@
 
 (defn start
   ([]
-   (start (store/read-api-token api-token-filename)))
+   (start state/api-token))
   ([api-token]
    (try
-     (alter-var-root (var mutes/*api-token*) (constantly api-token))
-     (slack/connect mutes/*api-token* try-handle-slack-event)
+     (slack/connect state/api-token try-handle-slack-event)
      (start-heartbeat)
      (println "pomodoro running...")
      (catch Exception ex

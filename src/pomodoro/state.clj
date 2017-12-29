@@ -1,4 +1,4 @@
-(ns pomodoro.file-ops
+(ns pomodoro.state
   (:require [clojure.string :as string]
             [clojure.java.io :as io]))
 
@@ -15,3 +15,10 @@
     (string/trim raw-api-token)
     (do (spit filename "your-api-token")
         (println "put your api token in" filename))))
+
+(def api-token-filename "api-token.txt")
+
+(def api-token (read-api-token api-token-filename))
+
+(def timer (atom nil))
+

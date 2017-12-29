@@ -1,10 +1,10 @@
 (ns pomodoro.interact
   (:require [pomodoro
-             [mutables :as mutes]]
+             [state :as state]]
             [clj-slack-client
              [rtm-transmit :as tx]
              [web :as web]
-             [team-state :as state]]
+             [team-state :as team]]
             [org.httpkit.client :as http]
             [cheshire.core :as json]
             [clojure.string :as string]))
@@ -14,11 +14,11 @@
   ([method-name]
    (web/call-and-get-response
      method-name
-     {:token mutes/*api-token*}))
+     {:token state/api-token}))
   ([method-name params]
    (web/call-and-get-response
      method-name
-     (assoc params :token mutes/*api-token*))))
+     (assoc params :token state/api-token))))
 
 ; these methods written by Tony van Riet
 (def slack-api-base-url "https://slack.com/api")
@@ -27,9 +27,9 @@
   "get the direct message channel id for this user.
   open the dm channel if it hasn't been opened yet."
   [user-id]
-  (if-let [dm-id (state/user-id->dm-id user-id)]
+  (if-let [dm-id (team/user-id->dm-id user-id)]
     dm-id
-    (web/im-open mutes/*api-token* user-id)))
+    (web/im-open state/api-token user-id)))
 
 (defn printex
   "Print an exception to CLI with stacktrace"
@@ -44,7 +44,7 @@
 (defn get-command-signature-re []
   "returns a regex that will match a command signature, indicating
   that the user wants lunchbot to interpret the message as a command"
-  (let [linkified-self (tx/linkify (state/self-id))]
+  (let [linkified-self (tx/linkify (team/self-id))]
     (re-pattern (str linkified-self ":?"))))
 
 
@@ -55,7 +55,7 @@
   (when text
     (let [cmd-signature-re (get-command-signature-re)
           has-cmd-signature (re-find cmd-signature-re text)]
-      (when (or (state/dm? channel-id) has-cmd-signature)
+      (when (or (team/dm? channel-id) has-cmd-signature)
         (-> text
             (string/replace cmd-signature-re "")
             (string/trim))))))
@@ -73,11 +73,11 @@
   ((comp :real_name :user)
    (web/call-and-get-response 
      "users.info"
-     {:token mutes/*api-token* :user (name id)})))
+     {:token state/api-token :user (name id)})))
 
 (defn get-bot-self-id-regex []
   "Creates a regex to match the bot's ID"
-  (-> (state/self-id)
+  (-> (team/self-id)
       (tx/linkify)
       (str)
       (re-pattern)))

@@ -1,7 +1,7 @@
 (ns pomodoro.reply
   (:require [pomodoro
              [interact :as interact]
-             [mutables :as mutes]
+             [state :as state]
              [status :as status]]))
 
 (defn cancel
@@ -26,7 +26,7 @@
 (defmethod respond :start
   [command msg]
   (swap!
-    mutes/timer
+    state/timer
     (fn [fut]
       (cancel fut)
       (create-timer 10000 (:channel msg)
@@ -36,9 +36,9 @@
 ; end the pomodoro
 (defmethod respond :end
   [command msg]
-  (if (not (future? @mutes/timer))
+  (if (not (future? @state/timer))
     "The timer isn't on."
-    (do (swap! mutes/timer cancel)
+    (do (swap! state/timer cancel)
         "Pomodoro cancelled.")))
 
 ; get the asker's status
