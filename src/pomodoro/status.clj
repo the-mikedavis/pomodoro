@@ -10,7 +10,7 @@
   "Generate a string with the time remaining on a Do Not Disturb"
   [msg response]
   (if (:dnd_enabled response)
-    (let [t (dnd/get-remaining-time (:ts msg) response)]
+    (let [t (dnd/time-delta (:ts msg) response)]
       (str "The pomodoro is running. It has " (:min t)
            " minutes and " (:sec t) " seconds remaining."))
     "No pomodoro is running."))
@@ -22,23 +22,16 @@
   [msg]
   (tell-remaining-time
     msg
-    (dnd/get-dnd-response state/api-token
-                          (:user msg))))
+    (dnd/get-user-dnd state/api-token
+                      (:user msg))))
 
 (defn get-team-dnd-status
   "Gets the reply string for the whole team's dnd status."
   [msg]
-  (->> (dnd/get-dnd-response state/api-token)
+  (->> (dnd/get-team-dnd state/api-token)
        :users
        (map (fn [[user-id api-response]]
               (str (interact/get-name user-id)
                    ": "
                    (tell-remaining-time msg api-response))))
        (string/join "\n")))
-;  (let [resp (dnd/get-dnd-response state/api-token)]
-;    (->> (:users resp)
-;         (map (fn [[user-id api-response]]
-;                (str (interact/get-name user-id)
-;                     ": "
-;                     (tell-remaining-time msg api-response))))
-;         (string/join "\n"))))

@@ -66,8 +66,9 @@
 
 (defn stop-heartbeat []
   "kill the heartbeat loop and block until the loop exits"
-  (swap! heartbeating (constantly false))
-  (future-cancel @heartbeat-loop))
+  (when (future? heartbeat-loop)
+    (swap! heartbeating (constantly false))
+    (future-cancel @heartbeat-loop)))
 
 
 (defn wait-for-console-quit []
@@ -95,9 +96,12 @@
      (start-heartbeat)
      (println "pomodoro running...")
      (catch Exception ex
-       (println ex)
-       (println "couldn't start pomodoro")
-       (stop)))))
+       ;(println ex)
+       (println (str
+                  "Couldn't start pomodoro due to a connection problem.\n"
+                  "Check your internet connection and try again."))
+       (stop)
+       (System/exit 1)))))
 
 (defn restart []
   (stop)
