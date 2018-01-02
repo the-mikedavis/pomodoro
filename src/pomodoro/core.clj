@@ -3,34 +3,22 @@
   (:require
     [clj-slack-client
      [core :as slack]
-     [rtm-transmit :as tx]
-     [team-state :as team]
-     [web :as web]]
+     [team-state :as team]]
     [pomodoro
      [reply :as reply]
      [state :as state]
-     [interact :as interact]]
-    [clj-time.core :as time]
-    [clojure.string :as string]
-    [org.httpkit.client :as http]))
+     [interact :as interact]]))
 
-(defn dispatch-handle-slack-event [event] ((juxt :type :subtype) event))
 
-(defmulti handle-slack-event #'dispatch-handle-slack-event)
+(defn handle-slack-event
+  "Reply to a slack message. Do nothing if an event isn't a message.
+  Essentially just pass off the event map to the reply/handle-message
+  function."
+  [{user-talking :user, :as event}]
+  (when (and (= (:type event) "message")
+             (not (team/bot? user-talking)))
+    (reply/handle-message event)))
 
-; all reply work gets done here
-(defmethod handle-slack-event ["message" nil]
-  [{user-id :user, :as msg}]
-  (when (not (team/bot? user-id))
-    (reply/handle-message msg)))
-
-(defmethod handle-slack-event ["channel_joined" nil]
-  [event]
-  nil)
-
-(defmethod handle-slack-event :default
-  [event]
-  nil)
 
 (defn try-handle-slack-event
   [event]
@@ -38,40 +26,11 @@
     (handle-slack-event event)
     (catch Exception ex
       (interact/printex (str "Exception trying to handle slack event\n"
-                    (str event) ".") ex))))
-
-(def heartbeating (atom false))
-
-(def heartbeat-loop (atom nil))
-
-(defn handle-command
-  "Not sure what this is supposed to do"
-  [arg]
-  arg)
-
-(defn heartbeat []
-  (handle-command {:command-type :find-nags
-                   :date         (time/today)
-                   :ts           (slack/time->ts (time/now))}))
-
-
-(defn start-heartbeat []
-  (swap! heartbeating (constantly true))
-  (swap! heartbeat-loop (constantly
-                          (future
-                            (loop []
-                              (heartbeat)
-                              (Thread/sleep 5000)
-                              (when @heartbeating (recur)))))))
-
-(defn stop-heartbeat []
-  "kill the heartbeat loop and block until the loop exits"
-  (when (future? heartbeat-loop)
-    (swap! heartbeating (constantly false))
-    (future-cancel @heartbeat-loop)))
+                             (str event) ".") ex))))
 
 
 (defn wait-for-console-quit []
+  "Continuously read in lines from stdin until it's just 'q'"
   (loop []
     (let [input (read-line)]
       (when-not (= input "q")
@@ -79,33 +38,20 @@
 
 
 (defn shutdown-app []
-  (stop-heartbeat)
   (slack/disconnect)
-  (println "...pomodoro dying"))
+  (println "...pomodoro dying")
+  (shutdown-agents))
 
 
-(defn stop []
-  (shutdown-app))
-
-(defn start
-  ([]
-   (start state/api-token))
-  ([api-token]
-   (try
-     (slack/connect state/api-token try-handle-slack-event)
-     (start-heartbeat)
-     (println "pomodoro running...")
-     (catch Exception ex
-       ;(println ex)
-       (println (str
-                  "Couldn't start pomodoro due to a connection problem.\n"
-                  "Check your internet connection and try again."))
-       (stop)
-       (System/exit 1)))))
-
-(defn restart []
-  (stop)
-  (start))
+(defn start []
+  (try
+    (slack/connect state/api-token try-handle-slack-event)
+    (println "pomodoro running...")
+    (catch Exception ex
+      (println (str "Couldn't start pomodoro due to a connection problem.\n"
+                    "Check your internet connection and try again."))
+      (shutdown-app)
+      (System/exit 1))))
 
 
 (defn -main
@@ -113,6 +59,4 @@
   (try
     (start)
     (wait-for-console-quit)
-    (finally
-      (stop)
-      (shutdown-agents))))
+    (finally (shutdown-app))))
