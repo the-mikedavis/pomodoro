@@ -5,8 +5,6 @@
              [rtm-transmit :as tx]
              [web :as web]
              [team-state :as team]]
-            [org.httpkit.client :as http]
-            [cheshire.core :as json]
             [clojure.string :as string]))
 
 (defn call-and-get-response
